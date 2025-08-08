@@ -342,149 +342,281 @@ onMounted(() => {
   if (chinaMapRef.value) {
     chinaMapChart = echarts.init(chinaMapRef.value)
     
-    // 备用地图数据源列表
-    const mapDataSources = [
-      'https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json',
-      'https://raw.githubusercontent.com/apache/echarts/master/map/json/china.json',
-      'https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/json/china.json'
-    ]
-    
-    // 尝试加载地图数据的函数
-    const tryLoadMapData = (sources, index = 0) => {
-      if (index >= sources.length) {
-        // 所有数据源都失败了，显示错误信息
-        console.error('所有地图数据源都加载失败')
-        chinaMapChart.setOption({
-          title: {
-            text: '地图数据加载失败，请刷新页面重试',
-            left: 'center',
-            top: 'center',
-            textStyle: {
-              fontSize: 14,
-              color: '#ff6b6b'
-            }
-          }
-        })
-        return
-      }
-      
-      const currentSource = sources[index]
-      console.log(`尝试加载地图数据源 ${index + 1}: ${currentSource}`)
-      
-      fetch(currentSource)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-          }
-          return response.json()
-        })
-        .then(chinaJson => {
-          echarts.registerMap('china', chinaJson)
-          const option = {
-            tooltip: {
-              trigger: 'item',
-              formatter: function(params) {
-                return params.name + ': ' + (params.value || 0)
-              }
-            },
-            visualMap: {
-              min: 0,
-              max: 2500,
-              left: 'left',
-              top: 'bottom',
-              text: ['高', '低'],
-              calculable: true,
-              inRange: {
-                color: ['#e0f3f8', '#fee090', '#fdae61', '#f46d43', '#d73027']
-              },
-              textStyle: {
-                fontSize: 12
-              }
-            },
-            series: [
-              {
-                name: '热度分布',
-                type: 'map',
-                map: 'china',
-                roam: true,
-                center: ['50%', '55%'],
-                zoom: 1.5,
-                emphasis: {
-                  label: {
-                    show: true
-                  }
-                },
-                itemStyle: {
-                  areaColor: '#f3f3f3',
-                  borderColor: '#ccc'
-                },
-                data: [
-                  { name: '广东省', value: 2314 },
-                  { name: '江苏省', value: 1344 },
-                  { name: '浙江省', value: 1140 },
-                  { name: '四川省', value: 1045 },
-                  { name: '山东省', value: 906 },
-                  { name: '上海市', value: 854 },
-                  { name: '北京市', value: 851 },
-                  { name: '河南省', value: 793 },
-                  { name: '湖北省', value: 671 },
-                  { name: '重庆市', value: 655 },
-                  { name: '福建省', value: 602 },
-                  { name: '湖南省', value: 600 },
-                  { name: '安徽省', value: 550 },
-                  { name: '河北省', value: 547 },
-                  { name: '广西壮族自治区', value: 492 },
-                  { name: '陕西省', value: 463 },
-                  { name: '辽宁省', value: 405 },
-                  { name: '江西省', value: 384 },
-                  { name: '山西省', value: 274 },
-                  { name: '天津市', value: 266 },
-                  { name: '云南省', value: 252 },
-                  { name: '黑龙江省', value: 240 },
-                  { name: '吉林省', value: 194 },
-                  { name: '贵州省', value: 188 },
-                  { name: '甘肃省', value: 133 },
-                  { name: '内蒙古自治区', value: 117 },
-                  { name: '海南省', value: 110 },
-                  { name: '新疆维吾尔自治区', value: 101 },
-                  { name: '宁夏回族自治区', value: 48 },
-                  { name: '香港特别行政区', value: 38 },
-                  { name: '青海省', value: 28 },
-                  { name: '台湾省', value: 22 },
-                  { name: '西藏自治区', value: 10 },
-                  { name: '澳门特别行政区', value: 5 }
-                ]
-              }
-            ]
-          }
-          
-          chinaMapChart.setOption(option)
-          console.log(`地图数据加载成功，使用数据源: ${currentSource}`)
-        })
-        .catch(error => {
-          console.error(`地图数据源 ${index + 1} 加载失败:`, error)
-          // 显示加载状态
-          chinaMapChart.setOption({
-            title: {
-              text: `地图加载中... (${index + 1}/${sources.length})`,
-              left: 'center',
-              top: 'center',
-              textStyle: {
-                fontSize: 16,
-                color: '#666'
-              }
-            }
-          })
-          
-          // 延迟后尝试下一个数据源
-          setTimeout(() => {
-            tryLoadMapData(sources, index + 1)
-          }, 2000)
-        })
+    // 内置的中国地图数据（简化版）
+    const chinaGeoJson = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "properties": {"name": "北京"},
+          "geometry": {"type": "Polygon", "coordinates": [[[116.4, 39.9], [116.5, 39.9], [116.5, 40.0], [116.4, 40.0], [116.4, 39.9]]]}
+        },
+        {
+          "type": "Feature", 
+          "properties": {"name": "天津"},
+          "geometry": {"type": "Polygon", "coordinates": [[[117.1, 39.0], [117.2, 39.0], [117.2, 39.1], [117.1, 39.1], [117.1, 39.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "河北"},
+          "geometry": {"type": "Polygon", "coordinates": [[[114.0, 38.0], [115.0, 38.0], [115.0, 39.0], [114.0, 39.0], [114.0, 38.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "山西"},
+          "geometry": {"type": "Polygon", "coordinates": [[[112.0, 37.0], [113.0, 37.0], [113.0, 38.0], [112.0, 38.0], [112.0, 37.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "内蒙古"},
+          "geometry": {"type": "Polygon", "coordinates": [[[110.0, 40.0], [120.0, 40.0], [120.0, 50.0], [110.0, 50.0], [110.0, 40.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "辽宁"},
+          "geometry": {"type": "Polygon", "coordinates": [[[120.0, 40.0], [125.0, 40.0], [125.0, 43.0], [120.0, 43.0], [120.0, 40.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "吉林"},
+          "geometry": {"type": "Polygon", "coordinates": [[[125.0, 42.0], [130.0, 42.0], [130.0, 45.0], [125.0, 45.0], [125.0, 42.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "黑龙江"},
+          "geometry": {"type": "Polygon", "coordinates": [[[125.0, 45.0], [135.0, 45.0], [135.0, 50.0], [125.0, 50.0], [125.0, 45.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "上海"},
+          "geometry": {"type": "Polygon", "coordinates": [[[121.4, 31.2], [121.5, 31.2], [121.5, 31.3], [121.4, 31.3], [121.4, 31.2]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "江苏"},
+          "geometry": {"type": "Polygon", "coordinates": [[[118.0, 31.0], [121.0, 31.0], [121.0, 33.0], [118.0, 33.0], [118.0, 31.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "浙江"},
+          "geometry": {"type": "Polygon", "coordinates": [[[120.0, 28.0], [122.0, 28.0], [122.0, 30.0], [120.0, 30.0], [120.0, 28.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "安徽"},
+          "geometry": {"type": "Polygon", "coordinates": [[[116.0, 30.0], [118.0, 30.0], [118.0, 32.0], [116.0, 32.0], [116.0, 30.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "福建"},
+          "geometry": {"type": "Polygon", "coordinates": [[[117.0, 24.0], [119.0, 24.0], [119.0, 26.0], [117.0, 26.0], [117.0, 24.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "江西"},
+          "geometry": {"type": "Polygon", "coordinates": [[[115.0, 25.0], [117.0, 25.0], [117.0, 27.0], [115.0, 27.0], [115.0, 25.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "山东"},
+          "geometry": {"type": "Polygon", "coordinates": [[[116.0, 35.0], [122.0, 35.0], [122.0, 38.0], [116.0, 38.0], [116.0, 35.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "河南"},
+          "geometry": {"type": "Polygon", "coordinates": [[[112.0, 32.0], [116.0, 32.0], [116.0, 35.0], [112.0, 35.0], [112.0, 32.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "湖北"},
+          "geometry": {"type": "Polygon", "coordinates": [[[110.0, 29.0], [115.0, 29.0], [115.0, 32.0], [110.0, 32.0], [110.0, 29.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "湖南"},
+          "geometry": {"type": "Polygon", "coordinates": [[[110.0, 25.0], [113.0, 25.0], [113.0, 28.0], [110.0, 28.0], [110.0, 25.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "广东"},
+          "geometry": {"type": "Polygon", "coordinates": [[[110.0, 21.0], [117.0, 21.0], [117.0, 25.0], [110.0, 25.0], [110.0, 21.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "广西"},
+          "geometry": {"type": "Polygon", "coordinates": [[[105.0, 21.0], [110.0, 21.0], [110.0, 25.0], [105.0, 25.0], [105.0, 21.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "海南"},
+          "geometry": {"type": "Polygon", "coordinates": [[[108.0, 18.0], [111.0, 18.0], [111.0, 20.0], [108.0, 20.0], [108.0, 18.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "重庆"},
+          "geometry": {"type": "Polygon", "coordinates": [[[106.0, 29.0], [108.0, 29.0], [108.0, 31.0], [106.0, 31.0], [106.0, 29.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "四川"},
+          "geometry": {"type": "Polygon", "coordinates": [[[101.0, 28.0], [108.0, 28.0], [108.0, 32.0], [101.0, 32.0], [101.0, 28.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "贵州"},
+          "geometry": {"type": "Polygon", "coordinates": [[[104.0, 25.0], [108.0, 25.0], [108.0, 28.0], [104.0, 28.0], [104.0, 25.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "云南"},
+          "geometry": {"type": "Polygon", "coordinates": [[[98.0, 21.0], [105.0, 21.0], [105.0, 28.0], [98.0, 28.0], [98.0, 21.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "西藏"},
+          "geometry": {"type": "Polygon", "coordinates": [[[80.0, 27.0], [95.0, 27.0], [95.0, 35.0], [80.0, 35.0], [80.0, 27.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "陕西"},
+          "geometry": {"type": "Polygon", "coordinates": [[[105.0, 32.0], [110.0, 32.0], [110.0, 35.0], [105.0, 35.0], [105.0, 32.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "甘肃"},
+          "geometry": {"type": "Polygon", "coordinates": [[[100.0, 35.0], [108.0, 35.0], [108.0, 40.0], [100.0, 40.0], [100.0, 35.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "青海"},
+          "geometry": {"type": "Polygon", "coordinates": [[[90.0, 32.0], [102.0, 32.0], [102.0, 38.0], [90.0, 38.0], [90.0, 32.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "宁夏"},
+          "geometry": {"type": "Polygon", "coordinates": [[[104.0, 37.0], [107.0, 37.0], [107.0, 39.0], [104.0, 39.0], [104.0, 37.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "新疆"},
+          "geometry": {"type": "Polygon", "coordinates": [[[75.0, 35.0], [95.0, 35.0], [95.0, 45.0], [75.0, 45.0], [75.0, 35.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "台湾"},
+          "geometry": {"type": "Polygon", "coordinates": [[[120.0, 22.0], [122.0, 22.0], [122.0, 25.0], [120.0, 25.0], [120.0, 22.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "香港"},
+          "geometry": {"type": "Polygon", "coordinates": [[[114.0, 22.0], [114.2, 22.0], [114.2, 22.3], [114.0, 22.3], [114.0, 22.0]]]}
+        },
+        {
+          "type": "Feature",
+          "properties": {"name": "澳门"},
+          "geometry": {"type": "Polygon", "coordinates": [[[113.5, 22.0], [113.6, 22.0], [113.6, 22.2], [113.5, 22.2], [113.5, 22.0]]]}
+        }
+      ]
     }
     
-    // 开始尝试加载地图数据
-    tryLoadMapData(mapDataSources)
+    try {
+      // 注册内置的中国地图
+      echarts.registerMap('china', chinaGeoJson)
+      
+      const option = {
+        tooltip: {
+          trigger: 'item',
+          formatter: function(params) {
+            return params.name + ': ' + (params.value || 0)
+          }
+        },
+        visualMap: {
+          min: 0,
+          max: 2500,
+          left: 'left',
+          top: 'bottom',
+          text: ['高', '低'],
+          calculable: true,
+          inRange: {
+            color: ['#e0f3f8', '#fee090', '#fdae61', '#f46d43', '#d73027']
+          },
+          textStyle: {
+            fontSize: 12
+          }
+        },
+        series: [
+          {
+            name: '热度分布',
+            type: 'map',
+            map: 'china',
+            roam: true,
+            center: ['50%', '55%'],
+            zoom: 1.5,
+            emphasis: {
+              label: {
+                show: true
+              }
+            },
+            itemStyle: {
+              areaColor: '#f3f3f3',
+              borderColor: '#ccc'
+            },
+            data: [
+              { name: '广东', value: 2314 },
+              { name: '江苏', value: 1344 },
+              { name: '浙江', value: 1140 },
+              { name: '四川', value: 1045 },
+              { name: '山东', value: 906 },
+              { name: '上海', value: 854 },
+              { name: '北京', value: 851 },
+              { name: '河南', value: 793 },
+              { name: '湖北', value: 671 },
+              { name: '重庆', value: 655 },
+              { name: '福建', value: 602 },
+              { name: '湖南', value: 600 },
+              { name: '安徽', value: 550 },
+              { name: '河北', value: 547 },
+              { name: '广西', value: 492 },
+              { name: '陕西', value: 463 },
+              { name: '辽宁', value: 405 },
+              { name: '江西', value: 384 },
+              { name: '山西', value: 274 },
+              { name: '天津', value: 266 },
+              { name: '云南', value: 252 },
+              { name: '黑龙江', value: 240 },
+              { name: '吉林', value: 194 },
+              { name: '贵州', value: 188 },
+              { name: '甘肃', value: 133 },
+              { name: '内蒙古', value: 117 },
+              { name: '海南', value: 110 },
+              { name: '新疆', value: 101 },
+              { name: '宁夏', value: 48 },
+              { name: '香港', value: 38 },
+              { name: '青海', value: 28 },
+              { name: '台湾', value: 22 },
+              { name: '西藏', value: 10 },
+              { name: '澳门', value: 5 }
+            ]
+          }
+        ]
+      }
+      
+      chinaMapChart.setOption(option)
+      console.log('中国地图初始化完成，使用内置数据')
+    } catch (error) {
+      console.error('地图初始化失败:', error)
+      chinaMapChart.setOption({
+        title: {
+          text: '地图初始化失败，请刷新页面重试',
+          left: 'center',
+          top: 'center',
+          textStyle: {
+            fontSize: 14,
+            color: '#ff6b6b'
+          }
+        }
+      })
+    }
   }
   
   // 初始化柱状图 - 普通用户和认证用户的情绪变化对比
