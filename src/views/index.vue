@@ -491,7 +491,7 @@ onMounted(() => {
           series: [
             {
               name: '热度分布',
-              type: 'map',  // 这里改为地图
+              type: 'map',
               map: 'china',
               roam: true,
               center: ['50%', '55%'],
