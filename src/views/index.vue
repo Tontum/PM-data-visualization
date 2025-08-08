@@ -338,231 +338,153 @@ onMounted(() => {
     pieChart.setOption(pieOption)
   }
   
-    // 初始化中国地图
+  // 初始化中国地图
   if (chinaMapRef.value) {
     chinaMapChart = echarts.init(chinaMapRef.value)
     
-    // 动态加载中国地图数据
-    fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
-      .then(response => response.json())
-      .then(chinaJson => {
-        console.log('地图数据加载成功:', chinaJson.features.length, '个地区')
-        
-        // 注册中国地图
-        echarts.registerMap('china', chinaJson)
-        
-        // 检查省份名称匹配
-        const mapNames = chinaJson.features.map(f => f.properties.name)
-        console.log('地图中的省份名称:', mapNames)
-        console.log('数据中的省份名称:', provinceHeatData.value.map(d => d.name))
-        
-        // 找出不匹配的省份
-        const dataNames = provinceHeatData.value.map(d => d.name)
-        const missingInData = mapNames.filter(name => !dataNames.includes(name))
-        const missingInMap = dataNames.filter(name => !mapNames.includes(name))
-        
-        console.log('地图中有但数据中没有的省份:', missingInData)
-        console.log('数据中有但地图中没有的省份:', missingInMap)
-        
-        const option = {
-          tooltip: {
-            trigger: 'item',
-            formatter: function(params) {
-              return params.name + ': ' + (params.value || 0)
-            }
-          },
-          visualMap: {
-            min: 0,
-            max: 2500,
-            left: 'left',
-            top: 'bottom',
-            text: ['高', '低'],
-            calculable: true,
-            inRange: {
-              color: ['#e0f3f8', '#fee090', '#fdae61', '#f46d43', '#d73027']
-            },
-            textStyle: {
-              fontSize: 12
-            }
-          },
-          series: [
-            {
-              name: '热度分布',
-              type: 'map',
-              map: 'china',
-              roam: true,
-              center: ['50%', '55%'],
-              zoom: 1.5,
-              emphasis: {
-                label: {
-                  show: true
-                }
-              },
-              itemStyle: {
-                areaColor: '#f3f3f3',
-                borderColor: '#ccc'
-              },
-              data: [
-                { name: '广东省', value: 2314 },
-                { name: '江苏省', value: 1344 },
-                { name: '浙江省', value: 1140 },
-                { name: '四川省', value: 1045 },
-                { name: '山东省', value: 906 },
-                { name: '上海市', value: 854 },
-                { name: '北京市', value: 851 },
-                { name: '河南省', value: 793 },
-                { name: '湖北省', value: 671 },
-                { name: '重庆市', value: 655 },
-                { name: '福建省', value: 602 },
-                { name: '湖南省', value: 600 },
-                { name: '安徽省', value: 550 },
-                { name: '河北省', value: 547 },
-                { name: '广西壮族自治区', value: 492 },
-                { name: '陕西省', value: 463 },
-                { name: '辽宁省', value: 405 },
-                { name: '江西省', value: 384 },
-                { name: '山西省', value: 274 },
-                { name: '天津市', value: 266 },
-                { name: '云南省', value: 252 },
-                { name: '黑龙江省', value: 240 },
-                { name: '吉林省', value: 194 },
-                { name: '贵州省', value: 188 },
-                { name: '甘肃省', value: 133 },
-                { name: '内蒙古自治区', value: 117 },
-                { name: '海南省', value: 110 },
-                { name: '新疆维吾尔自治区', value: 101 },
-                { name: '宁夏回族自治区', value: 48 },
-                { name: '香港特别行政区', value: 38 },
-                { name: '青海省', value: 28 },
-                { name: '台湾省', value: 22 },
-                { name: '西藏自治区', value: 10 },
-                { name: '澳门特别行政区', value: 5 }
-              ]
-            }
-          ]
-        }
-        
-        chinaMapChart.setOption(option)
-        console.log('中国地图初始化完成，数据:', provinceHeatData.value)
-      })
-      .catch(error => {
-        console.error('加载中国地图数据失败:', error)
-        // 如果地图加载失败，显示错误信息并重试
+    // 备用地图数据源列表
+    const mapDataSources = [
+      'https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json',
+      'https://raw.githubusercontent.com/apache/echarts/master/map/json/china.json',
+      'https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/json/china.json'
+    ]
+    
+    // 尝试加载地图数据的函数
+    const tryLoadMapData = (sources, index = 0) => {
+      if (index >= sources.length) {
+        // 所有数据源都失败了，显示错误信息
+        console.error('所有地图数据源都加载失败')
         chinaMapChart.setOption({
           title: {
-            text: '地图加载中...',
+            text: '地图数据加载失败，请刷新页面重试',
             left: 'center',
             top: 'center',
             textStyle: {
-              fontSize: 16,
-              color: '#666'
+              fontSize: 14,
+              color: '#ff6b6b'
             }
           }
         })
-        
-        // 3秒后重试加载地图
-        setTimeout(() => {
-          console.log('重试加载中国地图数据...')
-          fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
-            .then(response => response.json())
-            .then(chinaJson => {
-              echarts.registerMap('china', chinaJson)
-              const option = {
-                tooltip: {
-                  trigger: 'item',
-                  formatter: function(params) {
-                    return params.name + ': ' + (params.value || 0)
+        return
+      }
+      
+      const currentSource = sources[index]
+      console.log(`尝试加载地图数据源 ${index + 1}: ${currentSource}`)
+      
+      fetch(currentSource)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+          }
+          return response.json()
+        })
+        .then(chinaJson => {
+          echarts.registerMap('china', chinaJson)
+          const option = {
+            tooltip: {
+              trigger: 'item',
+              formatter: function(params) {
+                return params.name + ': ' + (params.value || 0)
+              }
+            },
+            visualMap: {
+              min: 0,
+              max: 2500,
+              left: 'left',
+              top: 'bottom',
+              text: ['高', '低'],
+              calculable: true,
+              inRange: {
+                color: ['#e0f3f8', '#fee090', '#fdae61', '#f46d43', '#d73027']
+              },
+              textStyle: {
+                fontSize: 12
+              }
+            },
+            series: [
+              {
+                name: '热度分布',
+                type: 'map',
+                map: 'china',
+                roam: true,
+                center: ['50%', '55%'],
+                zoom: 1.5,
+                emphasis: {
+                  label: {
+                    show: true
                   }
                 },
-                visualMap: {
-                  min: 0,
-                  max: 2500,
-                  left: 'left',
-                  top: 'bottom',
-                  text: ['高', '低'],
-                  calculable: true,
-                  inRange: {
-                    color: ['#e0f3f8', '#fee090', '#fdae61', '#f46d43', '#d73027']
-                  },
-                  textStyle: {
-                    fontSize: 12
-                  }
+                itemStyle: {
+                  areaColor: '#f3f3f3',
+                  borderColor: '#ccc'
                 },
-                series: [
-                  {
-                    name: '热度分布',
-                    type: 'map',
-                    map: 'china',
-                    roam: true,
-                    center: ['50%', '55%'],
-                    zoom: 1.5,
-                    emphasis: {
-                      label: {
-                        show: true
-                      }
-                    },
-                    itemStyle: {
-                      areaColor: '#f3f3f3',
-                      borderColor: '#ccc'
-                    },
-                    data: [
-                      { name: '广东省', value: 2314 },
-                      { name: '江苏省', value: 1344 },
-                      { name: '浙江省', value: 1140 },
-                      { name: '四川省', value: 1045 },
-                      { name: '山东省', value: 906 },
-                      { name: '上海市', value: 854 },
-                      { name: '北京市', value: 851 },
-                      { name: '河南省', value: 793 },
-                      { name: '湖北省', value: 671 },
-                      { name: '重庆市', value: 655 },
-                      { name: '福建省', value: 602 },
-                      { name: '湖南省', value: 600 },
-                      { name: '安徽省', value: 550 },
-                      { name: '河北省', value: 547 },
-                      { name: '广西壮族自治区', value: 492 },
-                      { name: '陕西省', value: 463 },
-                      { name: '辽宁省', value: 405 },
-                      { name: '江西省', value: 384 },
-                      { name: '山西省', value: 274 },
-                      { name: '天津市', value: 266 },
-                      { name: '云南省', value: 252 },
-                      { name: '黑龙江省', value: 240 },
-                      { name: '吉林省', value: 194 },
-                      { name: '贵州省', value: 188 },
-                      { name: '甘肃省', value: 133 },
-                      { name: '内蒙古自治区', value: 117 },
-                      { name: '海南省', value: 110 },
-                      { name: '新疆维吾尔自治区', value: 101 },
-                      { name: '宁夏回族自治区', value: 48 },
-                      { name: '香港特别行政区', value: 38 },
-                      { name: '青海省', value: 28 },
-                      { name: '台湾省', value: 22 },
-                      { name: '西藏自治区', value: 10 },
-                      { name: '澳门特别行政区', value: 5 }
-                    ]
-                  }
+                data: [
+                  { name: '广东省', value: 2314 },
+                  { name: '江苏省', value: 1344 },
+                  { name: '浙江省', value: 1140 },
+                  { name: '四川省', value: 1045 },
+                  { name: '山东省', value: 906 },
+                  { name: '上海市', value: 854 },
+                  { name: '北京市', value: 851 },
+                  { name: '河南省', value: 793 },
+                  { name: '湖北省', value: 671 },
+                  { name: '重庆市', value: 655 },
+                  { name: '福建省', value: 602 },
+                  { name: '湖南省', value: 600 },
+                  { name: '安徽省', value: 550 },
+                  { name: '河北省', value: 547 },
+                  { name: '广西壮族自治区', value: 492 },
+                  { name: '陕西省', value: 463 },
+                  { name: '辽宁省', value: 405 },
+                  { name: '江西省', value: 384 },
+                  { name: '山西省', value: 274 },
+                  { name: '天津市', value: 266 },
+                  { name: '云南省', value: 252 },
+                  { name: '黑龙江省', value: 240 },
+                  { name: '吉林省', value: 194 },
+                  { name: '贵州省', value: 188 },
+                  { name: '甘肃省', value: 133 },
+                  { name: '内蒙古自治区', value: 117 },
+                  { name: '海南省', value: 110 },
+                  { name: '新疆维吾尔自治区', value: 101 },
+                  { name: '宁夏回族自治区', value: 48 },
+                  { name: '香港特别行政区', value: 38 },
+                  { name: '青海省', value: 28 },
+                  { name: '台湾省', value: 22 },
+                  { name: '西藏自治区', value: 10 },
+                  { name: '澳门特别行政区', value: 5 }
                 ]
               }
-              chinaMapChart.setOption(option)
-              console.log('中国地图重试加载成功')
-            })
-            .catch(retryError => {
-              console.error('重试加载地图数据也失败:', retryError)
-              chinaMapChart.setOption({
-                title: {
-                  text: '地图数据加载失败，请刷新页面重试',
-                  left: 'center',
-                  top: 'center',
-                  textStyle: {
-                    fontSize: 14,
-                    color: '#ff6b6b'
-                  }
-                }
-              })
-            })
-        }, 3000)
-      })
+            ]
+          }
+          
+          chinaMapChart.setOption(option)
+          console.log(`地图数据加载成功，使用数据源: ${currentSource}`)
+        })
+        .catch(error => {
+          console.error(`地图数据源 ${index + 1} 加载失败:`, error)
+          // 显示加载状态
+          chinaMapChart.setOption({
+            title: {
+              text: `地图加载中... (${index + 1}/${sources.length})`,
+              left: 'center',
+              top: 'center',
+              textStyle: {
+                fontSize: 16,
+                color: '#666'
+              }
+            }
+          })
+          
+          // 延迟后尝试下一个数据源
+          setTimeout(() => {
+            tryLoadMapData(sources, index + 1)
+          }, 2000)
+        })
+    }
+    
+    // 开始尝试加载地图数据
+    tryLoadMapData(mapDataSources)
   }
   
   // 初始化柱状图 - 普通用户和认证用户的情绪变化对比
