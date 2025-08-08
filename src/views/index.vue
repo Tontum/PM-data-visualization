@@ -445,7 +445,7 @@ onMounted(() => {
         chinaMapChart.setOption(option)
         console.log('中国地图初始化完成，数据:', provinceHeatData.value)
       })
-            .catch(error => {
+      .catch(error => {
         console.error('加载中国地图数据失败:', error)
         // 如果地图加载失败，显示错误信息并重试
         chinaMapChart.setOption({
